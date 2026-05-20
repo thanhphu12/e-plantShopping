@@ -1,91 +1,85 @@
-import { useState } from 'react';
+import React from "react";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  removeItem,
+  updateQuantity,
+} from "../redux/CartSlice";
 
 function CartItem() {
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: 'Aloe Vera',
-      price: 10,
-      quantity: 1,
-      image: 'https://via.placeholder.com/100'
-    },
-    {
-      id: 2,
-      name: 'Snake Plant',
-      price: 15,
-      quantity: 2,
-      image: 'https://via.placeholder.com/100'
+  const cartItems = useSelector((state) => state.cart.items);
+  const dispatch = useDispatch();
+
+  const calculateTotalAmount = () => {
+    return cartItems
+      .reduce(
+        (total, item) => total + item.price * item.quantity,
+        0
+      )
+      .toFixed(2);
+  };
+
+  const handleIncrement = (item) => {
+    dispatch(
+      updateQuantity({
+        id: item.id,
+        quantity: item.quantity + 1,
+      })
+    );
+  };
+
+  const handleDecrement = (item) => {
+    if (item.quantity > 1) {
+      dispatch(
+        updateQuantity({
+          id: item.id,
+          quantity: item.quantity - 1,
+        })
+      );
     }
-  ]);
-
-  const increaseQuantity = (id) => {
-    setCartItems(
-      cartItems.map(item =>
-        item.id === id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      )
-    );
   };
 
-  const decreaseQuantity = (id) => {
-    setCartItems(
-      cartItems.map(item =>
-        item.id === id && item.quantity > 1
-          ? { ...item, quantity: item.quantity - 1 }
-          : item
-      )
-    );
+  const handleRemove = (id) => {
+    dispatch(removeItem(id));
   };
-
-  const removeItem = (id) => {
-    setCartItems(cartItems.filter(item => item.id !== id));
-  };
-
-  const totalAmount = cartItems.reduce(
-    (total, item) => total + item.price * item.quantity,
-    0
-  );
 
   return (
     <div>
-      <h1>Shopping Cart</h1>
+      <h2>Shopping Cart</h2>
 
-      <h2>Total Amount: ${totalAmount}</h2>
-
-      {cartItems.map(item => (
+      {cartItems.map((item) => (
         <div key={item.id}>
-          <img src={item.image} alt={item.name} />
+          <img
+            src={item.image}
+            alt={item.name}
+            width="100"
+          />
 
           <h3>{item.name}</h3>
 
-          <p>Unit Price: ${item.price}</p>
+          <p>Price: ${item.price}</p>
 
-          <p>Total Cost: ${item.price * item.quantity}</p>
+          <p>Quantity: {item.quantity}</p>
 
-          <button onClick={() => increaseQuantity(item.id)}>
+          <p>
+            Total Cost: $
+            {(item.price * item.quantity).toFixed(2)}
+          </p>
+
+          <button onClick={() => handleIncrement(item)}>
             +
           </button>
 
-          <span>{item.quantity}</span>
-
-          <button onClick={() => decreaseQuantity(item.id)}>
+          <button onClick={() => handleDecrement(item)}>
             -
           </button>
 
-          <button onClick={() => removeItem(item.id)}>
-            Delete
+          <button onClick={() => handleRemove(item.id)}>
+            Remove
           </button>
         </div>
       ))}
 
-      <button onClick={() => alert('Coming Soon')}>
-        Checkout
-      </button>
-
-      <button onClick={() => window.location.href = '/products'}>
-        Continue Shopping
-      </button>
+      <h3>Total Amount: ${calculateTotalAmount()}</h3>
     </div>
   );
 }
