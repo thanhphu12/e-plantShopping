@@ -44,3 +44,21 @@ def show_exam_result(request, course_id):
         'onlinecourse/exam_result_bootstrap.html',
         context
     )
+    @login_required
+def submit(request, course_id):
+
+    course = get_object_or_404(Course, pk=course_id)
+
+    enrollment = request.user.enrollment_set.get(course=course)
+
+    submission = Submission.objects.create(
+        enrollment=enrollment
+    )
+
+    choices = request.POST.getlist('choice')
+
+    for choice_id in choices:
+        choice = Choice.objects.get(pk=int(choice_id))
+        submission.choices.add(choice)
+
+    return show_exam_result(request, course_id)
