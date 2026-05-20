@@ -1,32 +1,24 @@
-from django.shortcuts import render, redirect
-from .models import Course, Enrollment, Submission, Choice
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import Course, Submission
 
 
-def submit(request, course_id):
-    course = Course.objects.get(pk=course_id)
-
-    enrollment = Enrollment.objects.first()
-
-    selected_choices = request.POST.getlist('choice')
-
-    submission = Submission.objects.create(
-        enrollment=enrollment
-    )
-
-    for choice_id in selected_choices:
-        choice = Choice.objects.get(pk=choice_id)
-        submission.choices.add(choice)
-
-    return redirect(
-        'show_exam_result',
-        course_id=course.id
-    )
-
-
+@login_required
 def show_exam_result(request, course_id):
-    course = Course.objects.get(pk=course_id)
 
-    submission = Submission.objects.first()
+    course = get_object_or_404(Course, pk=course_id)
+
+    submission = Submission.objects.filter(
+        enrollment__user=request.user,
+        enrollment__course=course
+    ).last()
+
+    choices = submission.choices.all()
+
+    selected_ids = []
+
+    for choice in choices:
+        selected_ids.append(choice.id)
 
     total_score = 0
     possible_score = 0
@@ -35,23 +27,20 @@ def show_exam_result(request, course_id):
 
         possible_score += question.grade
 
-        selected_ids = []
-
-        for choice in submission.choices.all():
-            if choice.question.id == question.id:
-                selected_ids.append(choice.id)
-
         if question.is_get_score(selected_ids):
             total_score += question.grade
 
+    grade = round(total_score / possible_score * 100, 2)
+
     context = {
         'course': course,
-        'total_score': total_score,
-        'possible_score': possible_score,
+        'submission': submission,
+        'grade': grade,
+        'selected_ids': selected_ids,
     }
 
     return render(
         request,
-        'onlinecourse/exam_result.html',
+        'onlinecourse/exam_result_bootstrap.html',
         context
     )
